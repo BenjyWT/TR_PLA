@@ -4,46 +4,139 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Planificador Semanal</title>
+    <!-- Incluir Flatpickr CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <style>
         body { font-family: Arial, sans-serif; }
         .tablero { display: flex; gap: 20px; padding: 20px; }
-        .lista { background: #f4f4f4; padding: 10px; width: 200px; border-radius: 5px; }
-        .tarjeta { background: white; padding: 10px; margin: 5px 0; border-radius: 3px; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1); }
+        .lista { background: #f4f4f4; padding: 10px; width: 250px; border-radius: 5px; min-height: 300px; }
+        .tarjeta { background: white; padding: 10px; margin: 5px 0; border-radius: 3px; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1); cursor: grab; display: flex; align-items: center; justify-content: space-between; }
+        .tarjeta input { flex-grow: 1; margin-right: 5px; }
+        .formulario { margin-bottom: 20px; }
+        .boton-agregar { background: none; border: none; font-size: 18px; cursor: pointer; color: green; }
     </style>
 </head>
 <body>
     <h2>Planificador Semanal</h2>
+    <div class="formulario">
+        <input type='text' id='nombre' placeholder='Nombre'>
+        <input type='text' id='cargo' placeholder='Cargo'>
+        <!-- Input para seleccionar un rango de fechas -->
+        <input type='text' id='rango-fechas' placeholder='Seleccione un rango de fechas'>
+        <input type='text' id='semana' placeholder='Semana seleccionada' readonly>
+    </div>
     <div class="tablero" id="tablero"></div>
 
+    <!-- Incluir Flatpickr JS -->
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
     <script>
-        const datos = {
-            "Lunes": ["Reunión con equipo", "Enviar reporte"],
-            "Martes": ["Visita a campo", "Revisión de documentos"],
-            "Miércoles": ["Capacitación SIG", "Análisis de datos"],
-            "Jueves": ["Revisión de indicadores", "Preparar presentación"],
-            "Viernes": ["Informe semanal", "Cierre de actividades"]
-        };
+        const estados = ["Planificadas", "En Proceso", "Hecho"];
+        const diasSemana = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+
+        // Configuración de Flatpickr para seleccionar un rango de fechas
+        flatpickr("#rango-fechas", {
+            mode: "range", // Modo de rango
+            locale: "es", // Idioma español
+            dateFormat: "Y-m-d", // Formato de fecha
+            onChange: function(selectedDates, dateStr) {
+                if (selectedDates.length === 2) {
+                    const inicioSemana = selectedDates[0];
+                    const finSemana = selectedDates[1];
+                    document.getElementById('semana').value = `Del ${inicioSemana.toLocaleDateString()} al ${finSemana.toLocaleDateString()}`;
+                    actualizarDiasSemana(inicioSemana, finSemana);
+                }
+            }
+        });
 
         function renderizarTablero() {
             const tablero = document.getElementById("tablero");
             tablero.innerHTML = "";
             
-            for (let dia in datos) {
+            estados.forEach(estado => {
                 let lista = document.createElement("div");
                 lista.classList.add("lista");
-                lista.innerHTML = `<h3>${dia}</h3>`;
+                lista.setAttribute("ondrop", "soltar(event)");
+                lista.setAttribute("ondragover", "permitirSoltar(event)");
+                lista.innerHTML = `<h3>${estado}</h3>`;
                 
-                datos[dia].forEach(tarea => {
-                    let tarjeta = document.createElement("div");
-                    tarjeta.classList.add("tarjeta");
-                    tarjeta.textContent = tarea;
-                    lista.appendChild(tarjeta);
-                });
+                if (estado === "Planificadas") {
+                    diasSemana.forEach(dia => {
+                        let diaTitulo = document.createElement("h4");
+                        diaTitulo.textContent = dia;
+                        lista.appendChild(diaTitulo);
+                        
+                        let contenedorDia = document.createElement("div");
+                        contenedorDia.setAttribute("ondrop", "soltar(event)");
+                        contenedorDia.setAttribute("ondragover", "permitirSoltar(event)");
+                        contenedorDia.classList.add("contenedor-dia");
+                        lista.appendChild(contenedorDia);
+                        
+                        agregarTarea(contenedorDia); // Agrega una tarea inicial por día
+                    });
+                } else if (estado === "En Proceso") {
+                    let botonAgregar = document.createElement("button");
+                    botonAgregar.classList.add("boton-agregar");
+                    botonAgregar.innerHTML = "➕ Añadir actividad";
+                    botonAgregar.onclick = () => agregarTarea(lista);
+                    lista.appendChild(botonAgregar);
+                }
                 
                 tablero.appendChild(lista);
-            }
+            });
         }
-        
+
+        function actualizarDiasSemana(inicioSemana, finSemana) {
+            const diasSemanaElementos = document.querySelectorAll(".contenedor-dia h4");
+            const diffDias = Math.floor((finSemana - inicioSemana) / (1000 * 60 * 60 * 24)) + 1;
+
+            diasSemanaElementos.forEach((diaElemento, index) => {
+                if (index < diffDias) {
+                    const fechaDia = new Date(inicioSemana);
+                    fechaDia.setDate(inicioSemana.getDate() + index);
+                    diaElemento.textContent = `${diasSemana[index]} (${fechaDia.toLocaleDateString()})`;
+                } else {
+                    diaElemento.textContent = diasSemana[index];
+                }
+            });
+        }
+
+        function permitirSoltar(ev) {
+            ev.preventDefault();
+        }
+
+        function arrastrar(ev) {
+            ev.dataTransfer.setData("text", ev.target.id);
+        }
+
+        function soltar(ev) {
+            ev.preventDefault();
+            let id = ev.dataTransfer.getData("text");
+            let tarjeta = document.getElementById(id);
+            ev.target.appendChild(tarjeta);
+        }
+
+        function agregarTarea(contenedor) {
+            let tarea = document.createElement("div");
+            tarea.classList.add("tarjeta");
+            tarea.setAttribute("draggable", "true");
+            tarea.setAttribute("ondragstart", "arrastrar(event)");
+            tarea.id = "tarea-" + Date.now();
+            
+            let inputTarea = document.createElement("input");
+            inputTarea.setAttribute("type", "text");
+            inputTarea.setAttribute("placeholder", "Escribe la actividad");
+            tarea.appendChild(inputTarea);
+            
+            let botonAgregar = document.createElement("button");
+            botonAgregar.classList.add("boton-agregar");
+            botonAgregar.innerHTML = "➕";
+            botonAgregar.onclick = () => agregarTarea(contenedor);
+            tarea.appendChild(botonAgregar);
+            
+            contenedor.appendChild(tarea);
+        }
+
         renderizarTablero();
     </script>
 </body>
