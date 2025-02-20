@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planificador Semanal</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .tablero { display: flex; gap: 20px; padding: 20px; }
+        .lista { background: #f4f4f4; padding: 10px; width: 200px; border-radius: 5px; }
+        .tarjeta { background: white; padding: 10px; margin: 5px 0; border-radius: 3px; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1); }
+    </style>
+</head>
+<body>
+    <h2>Planificador Semanal</h2>
+    <div class="tablero" id="tablero"></div>
+
+    <script>
+        const datos = {
+            "Lunes": ["Reunión con equipo", "Enviar reporte"],
+            "Martes": ["Visita a campo", "Revisión de documentos"],
+            "Miércoles": ["Capacitación SIG", "Análisis de datos"],
+            "Jueves": ["Revisión de indicadores", "Preparar presentación"],
+            "Viernes": ["Informe semanal", "Cierre de actividades"]
+        };
+
+        function renderizarTablero() {
+            const tablero = document.getElementById("tablero");
+            tablero.innerHTML = "";
+            
+            for (let dia in datos) {
+                let lista = document.createElement("div");
+                lista.classList.add("lista");
+                lista.innerHTML = `<h3>${dia}</h3>`;
+                
+                datos[dia].forEach(tarea => {
+                    let tarjeta = document.createElement("div");
+                    tarjeta.classList.add("tarjeta");
+                    tarjeta.textContent = tarea;
+                    lista.appendChild(tarjeta);
+                });
+                
+                tablero.appendChild(lista);
+            }
+        }
+        
+        renderizarTablero();
+    </script>
+</body>
+</html>
